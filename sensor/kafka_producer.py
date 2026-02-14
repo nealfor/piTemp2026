@@ -26,7 +26,10 @@ class SensorReading:
     sensor_humidity: float
     web_temp_f: float
     weather_description: str
-    sensor_id: str = "greenhouse_01"
+    sensor_id: str = "greenhouse_01_sensor"
+    greenhouse_id: str = "greenhouse_01"
+
+
     
     def to_dict(self):
         return asdict(self)
@@ -217,7 +220,9 @@ class GreenhouseKafkaProducer:
                     sensor_temp_f=round(temp_f, 1),
                     sensor_humidity=round(humidity, 1),
                     web_temp_f=round(web_temp, 1),
-                    weather_description=weather_desc
+                    weather_description=weather_desc,
+                    sensor_id="greenhouse_01_sensor",
+                    greenhouse_id="greenhouse_01"
                 )
                 
                 # Publish to Kafka
