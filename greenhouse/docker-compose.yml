@@ -13,8 +13,8 @@ services:
       KAFKA_CONTROLLER_QUORUM_VOTERS: "1@localhost:9093"
 
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://UR-IP-HERE:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAI>
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://YOUR_IP_HERE:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
 
@@ -39,5 +39,28 @@ services:
       - kafka-data:/var/lib/kafka/data
     restart: unless-stopped
 
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: timescaledb
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: greenhouse
+      POSTGRES_USER: greenhouse
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-xxxxxx}
+    volumes:
+      - timescale-data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - greenhouse-network
+    restart: unless-stopped
+    shm_size: 256mb
+    command: postgres -c shared_preload_libraries=timescaledb  
+
 volumes:
   kafka-data:
+  timescale-data:
+
+networks:
+  greenhouse-network:
+    driver: bridge
