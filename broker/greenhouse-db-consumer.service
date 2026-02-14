@@ -1,0 +1,29 @@
+# greenhouse-db-consumer.service
+# Location: /etc/systemd/system/greenhouse-db-consumer.service
+
+[Unit]
+Description=Greenhouse Database Consumer
+After=network.target docker.service
+Wants=docker.service
+
+[Service]
+Type=simple
+User=neal
+Group=neal
+WorkingDirectory=/home/neal/greenhouse
+ExecStart=/usr/bin/python3 /home/neal/greenhouse/db_consumer.py
+
+# Restart settings
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=greenhouse-db-consumer
+
+# Environment
+Environment="PYTHONUNBUFFERED=1"
+
+[Install]
+WantedBy=multi-user.target

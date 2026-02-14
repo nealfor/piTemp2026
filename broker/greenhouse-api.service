@@ -1,0 +1,29 @@
+# greenhouse-api.service
+# Location: /etc/systemd/system/greenhouse-api.service
+
+[Unit]
+Description=Greenhouse REST API Server
+After=network.target docker.service
+Wants=docker.service
+
+[Service]
+Type=simple
+User=neal
+Group=neal
+WorkingDirectory=/home/neal/greenhouse
+ExecStart=/usr/bin/python3 /home/neal/greenhouse/api_server.py
+
+# Restart settings
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=greenhouse-api
+
+# Environment
+Environment="PYTHONUNBUFFERED=1"
+
+[Install]
+WantedBy=multi-user.target
