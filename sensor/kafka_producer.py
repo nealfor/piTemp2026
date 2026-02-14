@@ -38,8 +38,7 @@ class SensorReading:
 class GreenhouseKafkaProducer:
     def __init__(self):
         # Kafka broker configuration (Pi #2)
-        self.kafka_brokers = os.getenv('KAFKA_BROKERS', 'raspberrypi2.local:9092
-')
+        self.kafka_brokers = os.getenv('KAFKA_BROKERS', 'raspberrypi2.local:9092')
         self.topic = os.getenv('KAFKA_TOPIC', 'greenhouse-readings')
         
         # Sensor configuration
@@ -52,8 +51,7 @@ class GreenhouseKafkaProducer:
         self.longitude = os.getenv('LONGITUDE')
         
         # Reading interval
-        self.interval = int(os.getenv('READING_INTERVAL', 300))  # 5 minutes def
-ault
+        self.interval = int(os.getenv('READING_INTERVAL', 300))  # 5 minutes default
         
         # Initialize Kafka producer
         self.producer = None
@@ -86,8 +84,7 @@ ault
                 return
                 
             except NoBrokersAvailable as e:
-                logger.warning(f"Kafka connection attempt {attempt + 1}/{max_ret
-ries} failed: No brokers available")
+                logger.warning(f"Kafka connection attempt {attempt + 1}/{max_retries} failed: No brokers available")
                 if attempt < max_retries - 1:
                     logger.info(f"Retrying in {retry_delay} seconds...")
                     time.sleep(retry_delay)
@@ -105,8 +102,7 @@ ries} failed: No brokers available")
     def read_sensor(self):
         """Read DHT22 sensor data"""
         try:
-            humidity, temperature_c = Adafruit_DHT.read_retry(self.dht_sensor, s
-elf.dht_pin)
+            humidity, temperature_c = Adafruit_DHT.read_retry(self.dht_sensor, self.dht_pin)
             
             if humidity is None or temperature_c is None:
                 logger.error("Failed to read from DHT sensor")
@@ -144,8 +140,7 @@ elf.dht_pin)
                 return temp, description
                 
             except requests.exceptions.RequestException as e:
-                logger.warning(f"Weather API attempt {attempt + 1}/{max_retries}
- failed: {e}")
+                logger.warning(f"Weather API attempt {attempt + 1}/{max_retries} failed: {e}")
                 if attempt < max_retries - 1:
                     time.sleep(5)
                 else:
@@ -204,8 +199,7 @@ elf.dht_pin)
                 if sensor_data is None:
                     consecutive_failures += 1
                     if consecutive_failures >= max_consecutive_failures:
-                        logger.error(f"Sensor failed {consecutive_failures} time
-s in a row")
+                        logger.error(f"Sensor failed {consecutive_failures} times in a row")
                     time.sleep(60)  # Wait a minute before retry
                     continue
                 
@@ -231,8 +225,7 @@ s in a row")
                 
                 if not success:
                     consecutive_failures += 1
-                    logger.warning(f"Failed to publish ({consecutive_failures} c
-onsecutive failures)")
+                    logger.warning(f"Failed to publish ({consecutive_failures} consecutive failures)")
                 
                 # Wait for next reading
                 logger.info(f"Sleeping for {self.interval} seconds...")

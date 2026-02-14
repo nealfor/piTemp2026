@@ -38,11 +38,9 @@ def test_environment():
     for var in required_vars:
         value = os.getenv(var)
         if value and value != f'your_{var.lower()}_here':
-            print_status(f"Environment variable {var}", True, f"Value: {value[:2
-0]}...")
+            print_status(f"Environment variable {var}", True, f"Value: {value[:20]}...")
         else:
-            print_status(f"Environment variable {var}", False, "Missing or not c
-onfigured")
+            print_status(f"Environment variable {var}", False, "Missing or not configured")
             all_present = False
     
     return all_present
@@ -69,21 +67,17 @@ def test_kafka_connection():
         # Try to get metadata to verify connection
         #metadata = producer.bootstrap_connected()
         if producer.bootstrap_connected():
-           print_status("Kafka broker connection", True, f"Connected to {brokers
-}")
-        #print_status("Available topics", True, f"Found {len(metadata.topics)} t
-opics")
+           print_status("Kafka broker connection", True, f"Connected to {brokers}")
+        #print_status("Available topics", True, f"Found {len(metadata.topics)} topics")
         
         producer.close()
         return True
         
     except NoBrokersAvailable:
-        print_status("Kafka broker connection", False, "No brokers available - c
-heck if Kafka is running")
+        print_status("Kafka broker connection", False, "No brokers available - check if Kafka is running")
         return False
     except ImportError:
-        print_status("Kafka library", False, "kafka-python not installed. Run: p
-ip3 install kafka-python")
+        print_status("Kafka library", False, "kafka-python not installed. Run: pip3 install kafka-python")
         return False
     except Exception as e:
         print_status("Kafka broker connection", False, str(e))
@@ -98,8 +92,7 @@ def test_sensor_library():
         print_status("Adafruit_DHT library", True, f"Version available")
         return True
     except ImportError:
-        print_status("Adafruit_DHT library", False, "Not installed. Run: pip3 in
-stall Adafruit-DHT")
+        print_status("Adafruit_DHT library", False, "Not installed. Run: pip3 install Adafruit-DHT")
         return False
 
 def test_weather_api():
@@ -119,12 +112,10 @@ def test_weather_api():
             return False
         
         if not lat or lat == 'your_latitude':
-            print_status("Location coordinates", False, "Latitude/longitude not 
-configured")
+            print_status("Location coordinates", False, "Latitude/longitude not configured")
             return False
         
-        api_url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lo
-n={lon}&appid={api_key}&units=imperial"
+        api_url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={api_key}&units=imperial"
         
         response = requests.get(api_url, timeout=10)
         response.raise_for_status()
@@ -133,16 +124,14 @@ n={lon}&appid={api_key}&units=imperial"
         temp = data["main"]["temp"]
         desc = data["weather"][0]["description"]
         
-        print_status("Weather API connection", True, f"Current: {temp}°F, {desc}
-")
+        print_status("Weather API connection", True, f"Current: {temp}°F, {desc}")
         return True
         
     except requests.exceptions.RequestException as e:
         print_status("Weather API connection", False, str(e))
         return False
     except ImportError:
-        print_status("Requests library", False, "Not installed. Run: pip3 instal
-l requests")
+        print_status("Requests library", False, "Not installed. Run: pip3 install requests")
         return False
 
 def test_send_message():
@@ -179,8 +168,7 @@ def test_send_message():
         record_metadata = future.get(timeout=10)
         
         print_status("Send test message", True, 
-                    f"Topic: {topic}, Partition: {record_metadata.partition}, Of
-fset: {record_metadata.offset}")
+                    f"Topic: {topic}, Partition: {record_metadata.partition}, Offset: {record_metadata.offset}")
         
         producer.flush()
         producer.close()
