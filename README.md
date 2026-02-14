@@ -18,7 +18,7 @@ Distributed IoT system for automated greenhouse climate control using Raspberry 
 - Local safety override for emergencies
 - Deploy to: Raspberry Pi near windows
 
-### Broker Module (`/broker`)
+### Greenhouse Kafka/DB Module (`/greenhouse`)
 - Kafka message broker
 - TimescaleDB for data storage
 - Data persistence layer
