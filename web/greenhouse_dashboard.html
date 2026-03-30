@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Greenhouse Monitor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Newsreader:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0e13;
+            --bg-secondary: #141920;
+            --bg-card: #1a1f28;
+            --text-primary: #e8eaed;
+            --text-secondary: #9ba0a8;
+            --accent-green: #4ade80;
+            --accent-blue: #60a5fa;
+            --accent-amber: #fbbf24;
+            --accent-red: #f87171;
+            --border: #2a3441;
+            --shadow: rgba(0, 0, 0, 0.3);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Newsreader', serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* Animated background gradient */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 20%, rgba(74, 222, 128, 0.05) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 80%, rgba(96, 165, 250, 0.05) 0%, transparent 50%);
+            animation: gradientShift 20s ease infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        @keyframes gradientShift {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(-5%, -5%); }
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Header */
+        header {
+            margin-bottom: 3rem;
+            animation: slideDown 0.6s ease;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        h1 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 3rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            font-weight: 300;
+        }
+        
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            animation: pulse 2s ease infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* Tab navigation */
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid var(--border);
+            animation: fadeIn 0.6s ease 0.1s both;
+        }
+        
+        .tab {
+            padding: 1rem 2rem;
+            background: transparent;
+            color: var(--text-secondary);
+            border: none;
+            border-bottom: 3px solid transparent;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: -2px;
+        }
+        
+        .tab:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.02);
+        }
+        
+        .tab.active {
+            color: var(--accent-green);
+            border-bottom-color: var(--accent-green);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        /* Time range selector */
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            animation: fadeIn 0.6s ease 0.2s both;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+            background: var(--bg-card);
+            padding: 0.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            background: transparent;
+            color: var(--text-secondary);
+            border: none;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+        
+        .btn.active {
+            background: var(--accent-green);
+            color: var(--bg-primary);
+        }
+        
+        /* Current readings grid */
+        .current-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+        
+        .metric-card {
+            background: var(--bg-card);
+            padding: 2rem;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+            animation: slideUp 0.6s ease both;
+        }
+        
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent-color), transparent);
+        }
+        
+        .metric-card:nth-child(1) {
+            --accent-color: var(--accent-green);
+            animation-delay: 0.1s;
+        }
+        
+        .metric-card:nth-child(2) {
+            --accent-color: var(--accent-blue);
+            animation-delay: 0.2s;
+        }
+        
+        .metric-card:nth-child(3) {
+            --accent-color: var(--accent-amber);
+            animation-delay: 0.3s;
+        }
+        
+        .metric-card:nth-child(4) {
+            --accent-color: var(--accent-red);
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .metric-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+        }
+        
+        .metric-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 3rem;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--accent-color), var(--text-primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .metric-unit {
+            font-size: 1.5rem;
+            opacity: 0.7;
+        }
+        
+        .metric-change {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+        
+        .metric-time {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        /* Chart section */
+        .chart-section {
+            background: var(--bg-card);
+            padding: 2rem;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            margin-bottom: 2rem;
+            animation: fadeIn 0.6s ease 0.5s both;
+        }
+        
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .chart-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.25rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .chart-options {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .chart-btn {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .chart-btn:hover {
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+        
+        .chart-btn.active {
+            background: var(--accent-green);
+            border-color: var(--accent-green);
+            color: var(--bg-primary);
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 400px;
+        }
+        
+        /* Stats grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            animation: fadeIn 0.6s ease 0.6s both;
+        }
+        
+        .stat-card {
+            background: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+        
+        .stat-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        /* Loading state */
+        .loading {
+            text-align: center;
+            padding: 4rem;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent-green);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Activity log */
+        .activity-log {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            padding: 2rem;
+        }
+        
+        .activity-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        
+        .activity-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.25rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .activity-item {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background: var(--bg-secondary);
+            border-left: 4px solid var(--accent-color);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .activity-item:hover {
+            background: rgba(255, 255, 255, 0.02);
+            transform: translateX(4px);
+        }
+        
+        .activity-item.fan-on {
+            --accent-color: var(--accent-green);
+        }
+        
+        .activity-item.fan-off {
+            --accent-color: var(--accent-blue);
+        }
+        
+        .activity-item.window {
+            --accent-color: var(--accent-amber);
+        }
+        
+        .activity-icon {
+            font-size: 2rem;
+            min-width: 2.5rem;
+            text-align: center;
+        }
+        
+        .activity-details {
+            flex: 1;
+        }
+        
+        .activity-device {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+        
+        .activity-reason {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+        
+        .activity-time {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-secondary);
+        }
+        
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.3;
+        }
+        
+        /* Responsive */
+        .responsive {
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .chart-container {
+                height: 300px;
+            }
+            
+            .metric-value {
+                font-size: 2.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌿 Greenhouse Monitor</h1>
+            <p class="subtitle">Real-time environmental monitoring & analytics</p>
+            <div class="status-indicator">
+                <span class="status-dot"></span>
+                <span id="statusText">Connected</span>
+            </div>
+        </header>
+        
+        <div class="tabs">
+            <button class="tab active" data-tab="overview" onclick="switchTab('overview')">Overview</button>
+            <button class="tab" data-tab="activity" onclick="switchTab('activity')">Activity Log</button>
+        </div>
+        
+        <div id="overview-tab" class="tab-content active">
+        
+        <div class="controls">
+            <div class="btn-group">
+                <button class="btn active" data-range="now" onclick="setTimeRange('now')">Now</button>
+                <button class="btn" data-range="hour" onclick="setTimeRange('hour')">1 Hour</button>
+                <button class="btn" data-range="day" onclick="setTimeRange('day')">24 Hours</button>
+                <button class="btn" data-range="week" onclick="setTimeRange('week')">Week</button>
+                <button class="btn" data-range="month" onclick="setTimeRange('month')">Month</button>
+                <button class="btn" data-range="year" onclick="setTimeRange('year')">Year</button>
+            </div>
+        </div>
+        
+        <div class="current-grid">
+            <div class="metric-card">
+                <div class="metric-label">Greenhouse Temp</div>
+                <div class="metric-value" id="currentTemp">--<span class="metric-unit">°F</span></div>
+                <div class="metric-change" id="tempChange">--</div>
+                <div class="metric-time" id="tempTime">--</div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-label">Humidity</div>
+                <div class="metric-value" id="currentHumidity">--<span class="metric-unit">%</span></div>
+                <div class="metric-change" id="humidityChange">--</div>
+                <div class="metric-time" id="humidityTime">--</div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-label">Outside Temp</div>
+                <div class="metric-value" id="currentWebTemp">--<span class="metric-unit">°F</span></div>
+                <div class="metric-change" id="webTempChange">--</div>
+                <div class="metric-time" id="webTempTime">--</div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-label">Weather</div>
+                <div class="metric-value" id="currentWeather" style="font-size: 1.5rem;">--</div>
+                <div class="metric-change" id="weatherChange">--</div>
+                <div class="metric-time" id="weatherTime">--</div>
+            </div>
+        </div>
+        
+        <div class="chart-section">
+            <div class="chart-header">
+                <h2 class="chart-title">Temperature Trends</h2>
+                <div class="chart-options">
+                    <button class="chart-btn active" onclick="toggleChart('temp')">Temperature</button>
+                    <button class="chart-btn" onclick="toggleChart('humidity')">Humidity</button>
+                    <button class="chart-btn" onclick="toggleChart('both')">Both</button>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="mainChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Average Temp</div>
+                <div class="stat-value" id="avgTemp">--°F</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Min Temp</div>
+                <div class="stat-value" id="minTemp">--°F</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Max Temp</div>
+                <div class="stat-value" id="maxTemp">--°F</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Avg Humidity</div>
+                <div class="stat-value" id="avgHumidity">--%</div>
+            </div>
+        </div>
+        
+        </div> <!-- End overview-tab -->
+        
+        <div id="activity-tab" class="tab-content">
+            <div class="activity-log">
+                <div class="activity-header">
+                    <h2 class="activity-title">Automation Activity</h2>
+                    <div class="btn-group">
+                        <button class="btn active" data-activity-range="24" onclick="setActivityRange(24)">24 Hours</button>
+                        <button class="btn" data-activity-range="168" onclick="setActivityRange(168)">Week</button>
+                        <button class="btn" data-activity-range="720" onclick="setActivityRange(720)">Month</button>
+                    </div>
+                </div>
+                <div id="activityList" class="activity-list">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔄</div>
+                        <p>Loading activity...</p>
+                    </div>
+                </div>
+            </div>
+        </div> <!-- End activity-tab -->
+        
+    </div> <!-- End container -->
+
+    <script>
+        // Configuration
+        //replace with the IP and API IDs
+        const API_BASE = 'http://[kafka_ip]:8000';  // UPDATE THIS IP!
+        const GREENHOUSE_ID = 'greenhouse_id';
+        let currentRange = 'now';
+        let currentChartMode = 'temp';
+        let currentActivityRange = 24;
+        let chart = null;
+        let refreshInterval = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initChart();
+            fetchData();
+            startAutoRefresh();
+        });
+        
+        // Tab switching
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.tab === tabName);
+            });
+            
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            
+            // Load data if switching to activity tab
+            if (tabName === 'activity') {
+                fetchActivity();
+            }
+        }
+        
+        // Activity range selector
+        function setActivityRange(hours) {
+            currentActivityRange = hours;
+            
+            // Update button states
+            document.querySelectorAll('.btn[data-activity-range]').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.activityRange == hours);
+            });
+            
+            fetchActivity();
+        }
+
+        // Time range selector
+        function setTimeRange(range) {
+            currentRange = range;
+            
+            // Update button states
+            document.querySelectorAll('.btn[data-range]').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.range === range);
+            });
+            
+            fetchData();
+        }
+
+        // Chart mode toggle
+        function toggleChart(mode) {
+            currentChartMode = mode;
+            
+            // Update button states
+            document.querySelectorAll('.chart-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            updateChart();
+        }
+
+        // Fetch data from API
+        async function fetchData() {
+            try {
+                // Fetch current reading
+                const current = await fetch(`${API_BASE}/api/readings/current/${GREENHOUSE_ID}`);
+                if (current.ok) {
+                    const data = await current.json();
+                    updateCurrentReadings(data);
+                }
+
+                // Fetch historical data
+                let hoursParam = 24;
+                let limit = 1000;
+                if (currentRange === 'now') {
+                    hoursParam = 1;
+                    // For "now", just show current reading, skip history/stats
+                    updateStatus('Connected', true);
+                    return;
+                } else if (currentRange === 'hour') {
+                    hoursParam = 1;
+                } else if (currentRange === 'day') {
+                    hoursParam = 24;
+                } else if (currentRange === 'week') {
+                    hoursParam = 168;
+                    limit = 2500;
+                } else if (currentRange === 'month') {
+                    hoursParam = 720;
+                    limit = 10000;
+                } else if (currentRange === 'year') {
+                    hoursParam = 8760;
+                }
+
+                const history = await fetch(`${API_BASE}/api/readings?greenhouse_id=${GREENHOUSE_ID}&hours=${hoursParam}&limit=${limit}`);
+                if (history.ok) {
+                    const data = await history.json();
+                    updateChart(data);
+                } else {
+                    console.error('History API failed:', history.status, await history.text());
+                }
+
+                // Fetch stats
+                const stats = await fetch(`${API_BASE}/api/stats?greenhouse_id=${GREENHOUSE_ID}&hours=${hoursParam}`);
+                if (stats.ok) {
+                    const data = await stats.json();
+                    updateStats(data);
+                } else {
+                    console.error('Stats API failed:', stats.status, await stats.text());
+                }
+
+                updateStatus('Connected', true);
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                updateStatus('Disconnected', false);
+            }
+        }
+
+        // Update current readings
+        function updateCurrentReadings(data) {
+            const temp = data.sensor_temp_f?.toFixed(1) || '--';
+            const humidity = data.sensor_humidity?.toFixed(1) || '--';
+            const webTemp = data.web_temp_f?.toFixed(1) || '--';
+            const weather = data.weather_description || '--';
+            
+            document.getElementById('currentTemp').innerHTML = `${temp}<span class="metric-unit">°F</span>`;
+            document.getElementById('currentHumidity').innerHTML = `${humidity}<span class="metric-unit">%</span>`;
+            document.getElementById('currentWebTemp').innerHTML = `${webTemp}<span class="metric-unit">°F</span>`;
+            document.getElementById('currentWeather').textContent = weather;
+            
+            const time = new Date(data.time);
+            const timeStr = formatTime(time);
+            
+            document.getElementById('tempTime').textContent = timeStr;
+            document.getElementById('humidityTime').textContent = timeStr;
+            document.getElementById('webTempTime').textContent = timeStr;
+            document.getElementById('weatherTime').textContent = timeStr;
+        }
+
+        // Initialize chart
+        function initChart() {
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Greenhouse Temp (°F)',
+                        data: [],
+                        borderColor: '#4ade80',
+                        backgroundColor: 'rgba(74, 222, 128, 0.1)',
+                        tension: 0.4,
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        yAxisID: 'y-temp'
+                    }, {
+                        label: 'Humidity (%)',
+                        data: [],
+                        borderColor: '#60a5fa',
+                        backgroundColor: 'rgba(96, 165, 250, 0.1)',
+                        tension: 0.4,
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        yAxisID: 'y-humidity',
+                        hidden: true
+                    }, {
+                        label: 'Outside Temp (°F)',
+                        data: [],
+                        borderColor: '#fbbf24',
+                        backgroundColor: 'rgba(251, 191, 36, 0.1)',
+                        tension: 0.4,
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        yAxisID: 'y-temp'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: '#9ba0a8',
+                                font: {
+                                    family: "'JetBrains Mono', monospace",
+                                    size: 11
+                                },
+                                padding: 15,
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: '#1a1f28',
+                            titleColor: '#e8eaed',
+                            bodyColor: '#9ba0a8',
+                            borderColor: '#2a3441',
+                            borderWidth: 1,
+                            padding: 12,
+                            titleFont: {
+                                family: "'JetBrains Mono', monospace",
+                                size: 12
+                            },
+                            bodyFont: {
+                                family: "'JetBrains Mono', monospace",
+                                size: 11
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: '#2a3441',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#9ba0a8',
+                                font: {
+                                    family: "'JetBrains Mono', monospace",
+                                    size: 10
+                                },
+                                maxRotation: 45,
+                                minRotation: 45,
+                                autoSkip: true,
+                                maxTicksLimit: 12
+                            }
+                        },
+                        'y-temp': {
+                            type: 'linear',
+                            position: 'left',
+                            grid: {
+                                color: '#2a3441',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#9ba0a8',
+                                font: {
+                                    family: "'JetBrains Mono', monospace",
+                                    size: 10
+                                },
+                                callback: function(value) {
+                                    return value + '°F';
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Temperature (°F)',
+                                color: '#9ba0a8',
+                                font: {
+                                    family: "'JetBrains Mono', monospace",
+                                    size: 11
+                                }
+                            }
+                        },
+                        'y-humidity': {
+                            type: 'linear',
+                            position: 'right',
+                            grid: {
+                                display: false,
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#9ba0a8',
+                                font: {
+                                    family: "'JetBrains Mono', monospace",
+                                    size: 10
+                                },
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Humidity (%)',
+                                color: '#9ba0a8',
+                                font: {
+                                    family: "'JetBrains Mono', monospace",
+                                    size: 11
+                                }
+                            },
+                            min: 0,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update chart with data
+        function updateChart(data = null) {
+            if (!data) {
+                console.log('No data to update chart');
+                return;
+            }
+            
+            console.log(`Updating chart with ${data.length} data points for range: ${currentRange}`);
+            
+            if (data.length === 0) {
+                console.warn('Empty data array received');
+                return;
+            }
+            
+            // Reverse to show oldest to newest
+            data = data.reverse();
+            
+            // Debug: Check first timestamp
+            if (data.length > 0) {
+                const firstTime = new Date(data[0].time);
+                console.log(`First data point UTC: ${data[0].time}`);
+                console.log(`First data point Local: ${firstTime.toString()}`);
+                console.log(`Formatted for chart: ${formatChartTime(firstTime)}`);
+            }
+            
+            const labels = data.map(d => formatChartTime(new Date(d.time)));
+            const tempData = data.map(d => d.sensor_temp_f);
+            const humidityData = data.map(d => d.sensor_humidity);
+            const webTempData = data.map(d => d.web_temp_f);
+            
+            console.log(`Chart data - Labels: ${labels.length}, Temp points: ${tempData.length}`);
+            
+            chart.data.labels = labels;
+            chart.data.datasets[0].data = tempData;
+            chart.data.datasets[1].data = humidityData;
+            chart.data.datasets[2].data = webTempData;
+            
+            // Show/hide datasets based on mode
+            if (currentChartMode === 'temp') {
+                chart.data.datasets[0].hidden = false;
+                chart.data.datasets[1].hidden = true;
+                chart.data.datasets[2].hidden = false;
+                chart.options.scales['y-humidity'].display = false;
+                chart.options.scales['y-temp'].display = true;
+            } else if (currentChartMode === 'humidity') {
+                chart.data.datasets[0].hidden = true;
+                chart.data.datasets[1].hidden = false;
+                chart.data.datasets[2].hidden = true;
+                chart.options.scales['y-humidity'].display = true;
+                chart.options.scales['y-temp'].display = false;
+            } else {
+                chart.data.datasets[0].hidden = false;
+                chart.data.datasets[1].hidden = false;
+                chart.data.datasets[2].hidden = false;
+                chart.options.scales['y-humidity'].display = true;
+                chart.options.scales['y-temp'].display = true;
+            }
+            
+            chart.update('none');
+        }
+
+        // Update stats
+        function updateStats(data) {
+            if (!data) {
+                document.getElementById('avgTemp').textContent = '--';
+                document.getElementById('minTemp').textContent = '--';
+                document.getElementById('maxTemp').textContent = '--';
+                document.getElementById('avgHumidity').textContent = '--';
+                return;
+            }
+            
+            document.getElementById('avgTemp').textContent = 
+                (data.avg_temp !== null && data.avg_temp !== undefined) 
+                    ? data.avg_temp.toFixed(1) + '°F' 
+                    : '--';
+            document.getElementById('minTemp').textContent = 
+                (data.min_temp !== null && data.min_temp !== undefined) 
+                    ? data.min_temp.toFixed(1) + '°F' 
+                    : '--';
+            document.getElementById('maxTemp').textContent = 
+                (data.max_temp !== null && data.max_temp !== undefined) 
+                    ? data.max_temp.toFixed(1) + '°F' 
+                    : '--';
+            document.getElementById('avgHumidity').textContent = 
+                (data.avg_humidity !== null && data.avg_humidity !== undefined) 
+                    ? data.avg_humidity.toFixed(1) + '%' 
+                    : '--';
+        }
+
+        // Update connection status
+        function updateStatus(text, connected) {
+            document.getElementById('statusText').textContent = text;
+            const dot = document.querySelector('.status-dot');
+            dot.style.background = connected ? '#4ade80' : '#f87171';
+        }
+
+        // Format time for display
+        function formatTime(date) {
+            const now = new Date();
+            const diff = Math.floor((now - date) / 1000);
+            
+            if (diff < 60) return 'Just now';
+            if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+            if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+        }
+
+        // Format time for chart
+        function formatChartTime(date) {
+            if (currentRange === 'now' || currentRange === 'hour') {
+                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            } else if (currentRange === 'day') {
+                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            } else if (currentRange === 'week') {
+                return date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' +
+                       date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            } else {
+                return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+            }
+        }
+
+        // Auto-refresh
+        function startAutoRefresh() {
+            // Refresh every 30 seconds for 'now', every 5 minutes otherwise
+            const interval = currentRange === 'now' ? 30000 : 300000;
+            
+            if (refreshInterval) clearInterval(refreshInterval);
+            refreshInterval = setInterval(fetchData, interval);
+        }
+        
+        // Fetch activity log
+        async function fetchActivity() {
+            try {
+                const response = await fetch(`${API_BASE}/api/commands?greenhouse_id=${GREENHOUSE_ID}&hours=${currentActivityRange}&limit=100`);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch activity');
+                }
+                
+                const commands = await response.json();
+                
+                if (commands.length === 0) {
+                    document.getElementById('activityList').innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📋</div>
+                            <p>No automation activity in the last ${currentActivityRange} hours</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Render activity items
+                const html = commands.map(cmd => {
+                    const time = new Date(cmd.time);
+                    const device = cmd.device === 'exhaust_fan' ? 'Exhaust Fan' : 'Louver Windows';
+                    const action = getActionText(cmd.device, cmd.action, cmd.value);
+                    const icon = getActivityIcon(cmd.device, cmd.action, cmd.value);
+                    const cssClass = getActivityClass(cmd.device, cmd.action, cmd.value);
+                    const reason = cmd.reason || 'Automated control';
+                    
+                    return `
+                        <div class="activity-item ${cssClass}">
+                            <div class="activity-icon">${icon}</div>
+                            <div class="activity-details">
+                                <div class="activity-device">${device}: ${action}</div>
+                                <div class="activity-reason">${formatReason(reason)}</div>
+                            </div>
+                            <div class="activity-time">${formatActivityTime(time)}</div>
+                        </div>
+                    `;
+                }).join('');
+                
+                document.getElementById('activityList').innerHTML = html;
+                
+            } catch (error) {
+                console.error('Error fetching activity:', error);
+                document.getElementById('activityList').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⚠️</div>
+                        <p>Failed to load activity log</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function getActionText(device, action, value) {
+            if (device === 'exhaust_fan') {
+                return action === 'turn_on' || value > 0 ? 'Turned ON' : 'Turned OFF';
+            } else if (device === 'louver_windows') {
+                return `Set to ${value}%`;
+            }
+            return action;
+        }
+        
+        function getActivityIcon(device, action, value) {
+            if (device === 'exhaust_fan') {
+                return action === 'turn_on' || value > 0 ? '💨' : '⏹️';
+            } else if (device === 'louver_windows') {
+                if (value >= 75) return '🔓';
+                if (value >= 25) return '🪟';
+                return '🔒';
+            }
+            return '⚙️';
+        }
+        
+        function getActivityClass(device, action, value) {
+            if (device === 'exhaust_fan') {
+                return action === 'turn_on' || value > 0 ? 'fan-on' : 'fan-off';
+            }
+            return 'window';
+        }
+        
+        function formatReason(reason) {
+            // Convert snake_case to readable text
+            return reason
+                .replace(/_/g, ' ')
+                .replace(/temp=/g, 'Temperature: ')
+                .replace(/humidity=/g, 'Humidity: ')
+                .replace(/F/g, '°F')
+                .split(',')[0]; // Take first part if comma-separated
+        }
+
+   function formatActivityTime(date) {
+       const now = new Date();
+       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+       const yesterday = new Date(today);
+       yesterday.setDate(yesterday.getDate() - 1);
+       const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    
+       const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+       if (dateOnly.getTime() === today.getTime()) {
+           // Today - show "Today at 3:45 PM"
+          return `Today at ${timeStr}`;
+       } else if (dateOnly.getTime() === yesterday.getTime()) {
+          // Yesterday - show "Yesterday at 3:45 PM"
+           return `Yesterday at ${timeStr}`;
+       } else {
+           // Older - show "Mar 5 at 3:45 PM"
+           return date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + 
+               ` at ${timeStr}`;
+       }
+   }
+
+
+
+        
+/*        function formatActivityTime(date) {
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+            
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays === 1) return 'Yesterday';
+            if (diffDays < 7) return `${diffDays}d ago`;
+            
+            return date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + 
+                   ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+*/
+    </script>
+</body>
+</html>
