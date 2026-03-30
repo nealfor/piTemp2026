@@ -12,7 +12,7 @@ Distributed IoT system for automated greenhouse climate control using Raspberry 
 - Publishes to Kafka every 5 minutes
 - Deploy to: Raspberry Pi in center of greenhouse
 
-### Actuator Module (`/actuator`)  
+### Worker Module (`/worker`)
 - Controls louver windows and exhaust fans
 - Receives commands from decision engine
 - Local safety override for emergencies
