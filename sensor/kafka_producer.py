@@ -25,6 +25,7 @@ class SensorReading:
     sensor_temp_f: float
     sensor_humidity: float
     web_temp_f: float
+    #V2 web_humidity: float  # outside humidity from OpenWeather — needed for humidity-differential fan logic
     weather_description: str
     sensor_id: str = "greenhouse_01_sensor"
     greenhouse_id: str = "greenhouse_01"
@@ -138,7 +139,8 @@ class GreenhouseKafkaProducer:
                 
                 temp = data["main"]["temp"]
                 description = data["weather"][0]["description"]
-                
+                #V2 web_humidity = data["main"]["humidity"]  # add to return tuple: return temp, description, web_humidity
+
                 logger.info(f"Weather API: {temp:.1f}°F, {description}")
                 return temp, description
                 
@@ -220,6 +222,7 @@ class GreenhouseKafkaProducer:
                     sensor_temp_f=round(temp_f, 1),
                     sensor_humidity=round(humidity, 1),
                     web_temp_f=round(web_temp, 1),
+                    #V2 web_humidity=round(web_humidity, 1),  # uncomment after adding web_humidity to dataclass and get_weather_data()
                     weather_description=weather_desc,
                     sensor_id="greenhouse_01_sensor",
                     greenhouse_id="greenhouse_01"

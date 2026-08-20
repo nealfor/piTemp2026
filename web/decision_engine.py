@@ -36,6 +36,7 @@ class DecisionEngine:
         self.fan_on_temp = float(os.getenv('FAN_ON_TEMP', '80'))  # Turn on fan
         self.fan_off_temp = float(os.getenv('FAN_OFF_TEMP', '76'))  # Turn off fan (hysteresis)
         self.high_humidity = float(os.getenv('HIGH_HUMIDITY', '80'))  # High humidity threshold
+        #V2 self.humidity_margin = float(os.getenv('HUMIDITY_MARGIN', '15'))  # Outside must be this much drier before venting for humidity
         
         # Emergency thresholds
         self.emergency_high_temp = float(os.getenv('EMERGENCY_HIGH_TEMP', '95'))
@@ -90,8 +91,10 @@ class DecisionEngine:
         if temp <= self.emergency_low_temp:
             return 0  # Full close
         
-        # High humidity forces ventilation
-        if humidity >= self.high_humidity:
+        # High humidity forces ventilation — but only if outside air is drier by a fair margin
+        #V2 web_humidity = reading.get('web_humidity')  # pass reading into this method (signature change needed)
+        #V2 if humidity >= self.high_humidity and web_humidity is not None and (humidity - web_humidity) >= self.humidity_margin:
+        if humidity >= self.high_humidity:  # V2: replace this line with the two #V2 lines above
             return max(75, self.current_window_position)  # At least 75% open
         
         # Calculate based on temperature difference from target
@@ -124,9 +127,12 @@ class DecisionEngine:
         if temp >= self.emergency_high_temp:
             return True
         
-        # High humidity
-#        if humidity >= self.high_humidity:
+        # High humidity — only vent if outside is drier by HUMIDITY_MARGIN
+#        if humidity >= self.high_humidity:  # original (no outside comparison)
 #            return True
+        #V2 web_humidity = reading.get('web_humidity')  # pass reading into this method (signature change needed)
+        #V2 if humidity >= self.high_humidity and web_humidity is not None and (humidity - web_humidity) >= self.humidity_margin:
+        #V2     return True
         
         # Temperature-based control with hysteresis
         if temp >= self.fan_on_temp:
@@ -172,11 +178,15 @@ class DecisionEngine:
             # Extract data
             temp = reading.get('sensor_temp_f')
             humidity = reading.get('sensor_humidity')
-            
+            #V2 web_humidity = reading.get('web_humidity')  # None until sensor is updated to publish it
+
             if temp is None or humidity is None:
                 logger.warning("Missing temperature or humidity data")
                 return
-            
+
+            #V2 if web_humidity is not None:
+            #V2     logger.info(f"Processing: Temp={temp}°F, Humidity={humidity}%, Outside Humidity={web_humidity}% (margin needed: {self.humidity_margin}%)")
+            #V2 else:
             logger.info(f"Processing: Temp={temp}°F, Humidity={humidity}%")
             
             # Store last reading
@@ -225,6 +235,7 @@ class DecisionEngine:
             if temp >= self.emergency_high_temp:
                 return f"emergency_high_temp_{temp}°F"
             elif humidity >= self.high_humidity:
+                #V2 return f"high_humidity_{humidity}%_outside_{web_humidity}%"  # replace line below when web_humidity is available
                 return f"high_humidity_{humidity}%"
             elif temp >= self.fan_on_temp:
                 return f"temp_high_{temp}°F"
