@@ -22,7 +22,7 @@ def print_status(test_name, passed, message=""):
 
 def test_environment():
     """Test if .env file exists and has required variables"""
-    print("\n=== Testing Environment Configuration ===")
+    print("\n=== Tesing Environment Configuration ===")
     
     load_dotenv()
     
